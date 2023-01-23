@@ -12,6 +12,7 @@ const crypto = require("crypto");
 const axios = require("axios").default;
 
 const cartDirectory = path.join(__dirname, "..", "data", "shoppingcarts");
+const productDirectory = path.join(__dirname, "..", "data", "products");
 
 exports.resolvers = {
   Query: {
@@ -32,14 +33,7 @@ exports.resolvers = {
   },
   Mutation: {
     addItemToCart: async (_, args) => {
-      const { cartId } = args;
-
-      const newItemInCart = {
-        id: crypto.randomUUID(),
-        name: "test",
-        price: 124,
-        quantity: 1,
-      };
+      const { cartId, itemId } = args;
 
       const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
       const cartExists = await fileExists(cartFilePath);
@@ -52,13 +46,38 @@ exports.resolvers = {
       let sum = 0;
 
       const data = JSON.parse(cartData);
-      data.items.push(newItemInCart);
 
-      for (let i = 0; i < data.items.length; i++) {
-        sum += data.items[i].price + data.items[i].quantity;
+      let itemInCartExist = false;
+
+      for (let x of data.items) {
+        if (x.id === itemId) {
+          x.quantity++;
+          itemInCartExist = true;
+        }
+        sum += x.price * x.quantity;
+      }
+
+      if (!itemInCartExist) {
+        const productFilePath = path.join(productDirectory, `${itemId}.json`);
+
+        // Check if the requested project actually exists
+        const productExists = await fileExists(productFilePath);
+        // If product does not exist return an error notifying the user of this
+        if (!productExists)
+          return new GraphQLError("That product does not exist");
+
+        // Read the project file; data will be returned as a JSON string
+        const itemData = await fsPromises.readFile(productFilePath, {
+          encoding: "utf-8",
+        });
+        // Parse the returned JSON project data into a JS object
+        const productdata = JSON.parse(itemData);
+        // Return the data
+        data.items.push(productdata);
       }
 
       data.totalprice = sum;
+      await fsPromises.writeFile(cartFilePath, JSON.stringify(data));
       return data;
     },
 

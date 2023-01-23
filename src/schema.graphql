@@ -23,7 +23,7 @@ type Query {
 
 type Mutation {
   createCart: Cart!
-  addItemToCart(cartId: ID!): Cart!
+  addItemToCart(cartId: ID!, itemId: ID!): Cart!
   #   removeItemFromCart(input: RemoveFromCartInput!): Cart!
   #   deleteCart(cartId: ID!): DeletedResourceResponse
 }
