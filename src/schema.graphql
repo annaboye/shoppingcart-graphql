@@ -1,0 +1,49 @@
+type Item {
+  id: ID!
+  name: String!
+  price: Float!
+  quantity: Float!
+}
+
+type Cart {
+  id: ID!
+  items: [Item]!
+  totalprice: Float!
+}
+
+type DeletedResourceResponse {
+  deletedId: ID
+  success: Boolean
+}
+
+type Query {
+  getCartById(cartId: ID!): Cart
+  # getItemById(itemId: ID!): Item?
+}
+
+type Mutation {
+  createCart: Cart!
+  addItemToCart(cartId: ID!): Cart!
+  #   removeItemFromCart(input: RemoveFromCartInput!): Cart!
+  #   deleteCart(cartId: ID!): DeletedResourceResponse
+}
+
+# input CreateCartInput {
+#   items: [Item]
+# }
+
+# input AddToCartInput {
+#   cartId: ID
+#   item: Item
+# }
+
+# input removeItemFromCart {
+#   cartId: ID
+#   itemid: ID
+# }
+
+# input CartItemInput {
+#   id: ID
+#   price: Float
+#   quantity: Float
+# }
