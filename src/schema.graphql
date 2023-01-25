@@ -9,7 +9,7 @@ type CartItem {
   id: ID!
   name: String!
   price: Float!
-  quantity: Float!
+  quantity: Int!
 }
 
 type Cart {
@@ -35,23 +35,3 @@ type Mutation {
   removeItemFromCart(cartId: ID!, cartItemId: ID!): Cart!
   deleteCart(cartId: ID!): DeletedResourceResponse
 }
-
-# input CreateCartInput {
-#   items: [Item]
-# }
-
-# input AddToCartInput {
-#   cartId: ID
-#   item: Item
-# }
-
-# input removeItemFromCart {
-#   cartId: ID
-#   itemid: ID
-# }
-
-# input CartItemInput {
-#   id: ID
-#   price: Float
-#   quantity: Float
-# }

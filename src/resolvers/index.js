@@ -23,8 +23,8 @@ exports.resolvers = {
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
       // get data from file
-      const cartData = await readJsonFile(cartFilePath);
-      const data = JSON.parse(cartData);
+      const data = await readJsonFile(cartFilePath);
+
       return data;
     },
   },
@@ -36,9 +36,7 @@ exports.resolvers = {
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
 
-      const cartData = await readJsonFile(cartFilePath);
-
-      const data = JSON.parse(cartData);
+      const data = await readJsonFile(cartFilePath);
 
       let itemInCartExist = false;
       // check if produkten exists in cart and if so increase quantity:
@@ -61,9 +59,9 @@ exports.resolvers = {
           return new GraphQLError("That product does not exist");
 
         // Read the product file; data will be returned as a JSON string
-        const itemData = await readJsonFile(productFilePath);
+        const productData = await readJsonFile(productFilePath);
         // Parse the returned JSON product data into a JS object
-        const productData = JSON.parse(itemData);
+
         const newCartItem = {
           id: productData.id,
           name: productData.name,
@@ -164,11 +162,7 @@ exports.resolvers = {
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
 
-      const cartData = await fsPromises.readFile(cartFilePath, {
-        encoding: "utf-8",
-      });
-
-      const data = JSON.parse(cartData);
+      const data = await readJsonFile(cartFilePath);
 
       let itemInCartExist = false;
       // check if produkten already exist in cart and if so reduce quantity and if quantity=0 remove from items-list:
