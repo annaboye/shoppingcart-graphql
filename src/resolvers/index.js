@@ -33,7 +33,7 @@ exports.resolvers = {
   },
   Mutation: {
     addItemToCart: async (_, args) => {
-      const { cartId, itemId } = args;
+      const { cartId, productId } = args;
 
       const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
       const cartExists = await fileExists(cartFilePath);
@@ -43,22 +43,22 @@ exports.resolvers = {
         encoding: "utf-8",
       });
 
-      let sum = 0;
-
       const data = JSON.parse(cartData);
 
       let itemInCartExist = false;
-
+      // check if produkten already exist in cart and if so increase quantity:
       for (let x of data.items) {
-        if (x.id === itemId) {
+        if (x.id === productId) {
           x.quantity++;
           itemInCartExist = true;
         }
-        sum += x.price * x.quantity;
       }
-
+      // if product is not in cart already:
       if (!itemInCartExist) {
-        const productFilePath = path.join(productDirectory, `${itemId}.json`);
+        const productFilePath = path.join(
+          productDirectory,
+          `${productId}.json`
+        );
 
         // Check if the requested project actually exists
         const productExists = await fileExists(productFilePath);
@@ -71,26 +71,34 @@ exports.resolvers = {
           encoding: "utf-8",
         });
         // Parse the returned JSON project data into a JS object
-        const productdata = JSON.parse(itemData);
-        // Return the data
-        data.items.push(productdata);
+        const productData = JSON.parse(itemData);
+        const newCartItem = {
+          id: productData.id,
+          name: productData.name,
+          price: productData.price,
+          quantity: 1,
+        };
+
+        // push newCartItem in to shoppingcart cartitem-list
+        data.items.push(newCartItem);
+      }
+      //update totalprice for cart:
+      let sum = 0;
+      for (let x of data.items) {
+        sum += x.quantity * x.price;
       }
 
       data.totalprice = sum;
+      //update cart:
       await fsPromises.writeFile(cartFilePath, JSON.stringify(data));
       return data;
     },
 
-    createCart: async (_) => {
-      const items = [
-        { id: crypto.randomUUID(), name: "test", price: 124, quantity: 1 },
-        { id: crypto.randomUUID(), name: "test", price: 125, quantity: 1 },
-      ];
-
+    createCart: async () => {
       const newCart = {
         id: crypto.randomUUID(),
-        items: items,
-        totalprice: 123,
+        items: [],
+        totalprice: 0,
       };
 
       let filePath = path.join(
@@ -118,6 +126,84 @@ exports.resolvers = {
 
       // Return:a våran respons; vår nya shoppingcart
       return newCart;
+    },
+
+    createProduct: async (_, args) => {
+      // skapa nya produkter till shoppen
+      const { name, description, price } = args;
+
+      const newProduct = {
+        id: crypto.randomUUID(),
+        name: args.name,
+        description: args.description || "",
+        price: args.price,
+      };
+      let filePath = path.join(
+        __dirname,
+        "..",
+        "data",
+        "products",
+        `${newProduct.id}.json`
+      );
+      let idExists = true;
+      while (idExists) {
+        const exists = await fileExists(filePath); // kolla om filen existerar
+        console.log(exists, newProduct.id);
+        // om filen redan existerar generera ett nytt productId och uppdatera filePath
+        if (exists) {
+          newProduct.id = crypto.randomUUID();
+          filePath = path.join(productDirectory, `${newProduct.id}.json`);
+        }
+        // uppdatera idExists (för att undvika infinite loops)
+        idExists = exists;
+      }
+      await fsPromises.writeFile(filePath, JSON.stringify(newProduct));
+
+      // Return:a våran respons; vår nya product
+      return newProduct;
+    },
+
+    removeItemFromCart: async (_, args) => {
+      const { cartId, cartItemId } = args;
+
+      const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
+      const cartExists = await fileExists(cartFilePath);
+      if (!cartExists) return new GraphQLError("That cart does not exist");
+
+      const cartData = await fsPromises.readFile(cartFilePath, {
+        encoding: "utf-8",
+      });
+
+      const data = JSON.parse(cartData);
+
+      let itemInCartExist = false;
+      // check if produkten already exist in cart and if so reduce quantity if quantity===0 splice:
+
+      for (let i = 0; i < data.items.length; i++) {
+        if (data.items[i].id === cartItemId) {
+          data.items[i].quantity--;
+          itemInCartExist = true;
+          if (data.items[i].quantity === 0) {
+            console.log(data.items[i].quantity);
+            data.items.splice(i, 1);
+          }
+        }
+      }
+
+      // if product is not in cart already:
+      if (!itemInCartExist) {
+        return new GraphQLError("That product does not exist in this cart");
+      }
+      //update totalprice for cart:
+      let sum = 0;
+      for (let x of data.items) {
+        sum += x.quantity * x.price;
+      }
+
+      data.totalprice = sum;
+      //update cart:
+      await fsPromises.writeFile(cartFilePath, JSON.stringify(data));
+      return data;
     },
   },
 };

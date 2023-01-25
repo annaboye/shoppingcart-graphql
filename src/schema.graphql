@@ -1,4 +1,11 @@
-type Item {
+type Product {
+  id: ID!
+  name: String!
+  description: String
+  price: Float!
+}
+
+type CartItem {
   id: ID!
   name: String!
   price: Float!
@@ -7,7 +14,7 @@ type Item {
 
 type Cart {
   id: ID!
-  items: [Item]!
+  items: [CartItem]
   totalprice: Float!
 }
 
@@ -23,8 +30,9 @@ type Query {
 
 type Mutation {
   createCart: Cart!
-  addItemToCart(cartId: ID!, itemId: ID!): Cart!
-  #   removeItemFromCart(input: RemoveFromCartInput!): Cart!
+  addItemToCart(cartId: ID!, productId: ID!): Cart!
+  createProduct(name: String!, description: String, price: Float!): Product!
+  removeItemFromCart(cartId: ID!, cartItemId: ID!): Cart!
   #   deleteCart(cartId: ID!): DeletedResourceResponse
 }
 
