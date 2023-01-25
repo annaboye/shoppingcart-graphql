@@ -33,7 +33,7 @@ type Mutation {
   addItemToCart(cartId: ID!, productId: ID!): Cart!
   createProduct(name: String!, description: String, price: Float!): Product!
   removeItemFromCart(cartId: ID!, cartItemId: ID!): Cart!
-  #   deleteCart(cartId: ID!): DeletedResourceResponse
+  deleteCart(cartId: ID!): DeletedResourceResponse
 }
 
 # input CreateCartInput {
