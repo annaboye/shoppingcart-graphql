@@ -25,7 +25,7 @@ type DeletedResourceResponse {
 
 type Query {
   getCartById(cartId: ID!): Cart
-  # getItemById(itemId: ID!): Item?
+  getProductById(productId: ID!): Product
 }
 
 type Mutation {

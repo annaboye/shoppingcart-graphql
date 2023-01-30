@@ -4,12 +4,9 @@ const {
   fileExists,
   readJsonFile,
   deleteFile,
-  getDirectoryFileNames,
 } = require("../utils/fileHandling");
 const { GraphQLError, printType } = require("graphql");
 const crypto = require("crypto");
-
-const axios = require("axios").default;
 
 const cartDirectory = path.join(__dirname, "..", "data", "shoppingcarts");
 const productDirectory = path.join(__dirname, "..", "data", "products");
@@ -23,9 +20,21 @@ exports.resolvers = {
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
       // get data from file
-      const data = await readJsonFile(cartFilePath);
+      const cartData = await readJsonFile(cartFilePath);
 
-      return data;
+      return cartData;
+    },
+    getProductById: async (_, args) => {
+      const productId = args.productId;
+      const productFilePath = path.join(productDirectory, `${productId}.json`);
+      const productExists = await fileExists(productFilePath);
+      // If product does not exist return an error notifying the user of this
+      if (!productExists)
+        return new GraphQLError("That product does not exist");
+
+      // Read the product file; data will be returned as a JSON string
+      const productData = await readJsonFile(productFilePath);
+      return productData;
     },
   },
   Mutation: {
@@ -36,11 +45,11 @@ exports.resolvers = {
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
 
-      const data = await readJsonFile(cartFilePath);
+      const cartData = await readJsonFile(cartFilePath);
 
       let itemInCartExist = false;
-      // check if produkten exists in cart and if so increase quantity:
-      for (let x of data.items) {
+      // check if product exists in cart and if so increase quantity:
+      for (let x of cartData.items) {
         if (x.id === productId) {
           x.quantity++;
           itemInCartExist = true;
@@ -60,7 +69,6 @@ exports.resolvers = {
 
         // Read the product file; data will be returned as a JSON string
         const productData = await readJsonFile(productFilePath);
-        // Parse the returned JSON product data into a JS object
 
         const newCartItem = {
           id: productData.id,
@@ -70,19 +78,19 @@ exports.resolvers = {
         };
 
         // push newCartItem in to shoppingcart cartitem-list
-        data.items.push(newCartItem);
+        cartData.items.push(newCartItem);
       }
       //update totalprice for cart:
       let sum = 0;
-      for (let x of data.items) {
+      for (let x of cartData.items) {
         sum += x.quantity * x.price;
       }
 
-      data.totalprice = sum;
+      cartData.totalprice = sum;
       //update cart:
-      await fsPromises.writeFile(cartFilePath, JSON.stringify(data));
+      await fsPromises.writeFile(cartFilePath, JSON.stringify(cartData));
       // return updated cart
-      return data;
+      return cartData;
     },
 
     createCart: async () => {
@@ -120,41 +128,6 @@ exports.resolvers = {
       return newCart;
     },
 
-    createProduct: async (_, args) => {
-      // skapa nya produkter till shoppen
-      const { name, description, price } = args;
-
-      const newProduct = {
-        id: crypto.randomUUID(),
-        name: args.name,
-        description: args.description || "",
-        price: args.price,
-      };
-      let filePath = path.join(
-        __dirname,
-        "..",
-        "data",
-        "products",
-        `${newProduct.id}.json`
-      );
-      let idExists = true;
-      while (idExists) {
-        const exists = await fileExists(filePath); // kolla om filen existerar
-        console.log(exists, newProduct.id);
-        // om filen redan existerar generera ett nytt productId och uppdatera filePath
-        if (exists) {
-          newProduct.id = crypto.randomUUID();
-          filePath = path.join(productDirectory, `${newProduct.id}.json`);
-        }
-        // uppdatera idExists (för att undvika infinite loops)
-        idExists = exists;
-      }
-      await fsPromises.writeFile(filePath, JSON.stringify(newProduct));
-
-      // Return our new product
-      return newProduct;
-    },
-
     removeItemFromCart: async (_, args) => {
       const { cartId, cartItemId } = args;
 
@@ -162,18 +135,18 @@ exports.resolvers = {
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
 
-      const data = await readJsonFile(cartFilePath);
+      const cartData = await readJsonFile(cartFilePath);
 
       let itemInCartExist = false;
       // check if produkten already exist in cart and if so reduce quantity and if quantity=0 remove from items-list:
 
-      for (let i = 0; i < data.items.length; i++) {
-        if (data.items[i].id === cartItemId) {
-          data.items[i].quantity--;
+      for (let i = 0; i < cartData.items.length; i++) {
+        if (cartData.items[i].id === cartItemId) {
+          cartData.items[i].quantity--;
           itemInCartExist = true;
-          if (data.items[i].quantity === 0) {
-            console.log(data.items[i].quantity);
-            data.items.splice(i, 1);
+          if (cartData.items[i].quantity === 0) {
+            console.log(cartData.items[i].quantity);
+            cartData.items.splice(i, 1);
           }
         }
       }
@@ -184,14 +157,14 @@ exports.resolvers = {
       }
       //update totalprice for cart:
       let sum = 0;
-      for (let x of data.items) {
+      for (let x of cartData.items) {
         sum += x.quantity * x.price;
       }
 
-      data.totalprice = sum;
+      cartData.totalprice = sum;
       //update cart:
-      await fsPromises.writeFile(cartFilePath, JSON.stringify(data));
-      return data;
+      await fsPromises.writeFile(cartFilePath, JSON.stringify(cartData));
+      return cartData;
     },
 
     deleteCart: async (_, args) => {
