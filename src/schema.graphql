@@ -30,8 +30,9 @@ type Query {
 
 type Mutation {
   createCart: Cart!
-  addItemToCart(cartId: ID!, productId: ID!): Cart!
+  addItemToCart(cartId: ID!, productId: ID!, quantity: Float!): Cart!
   createProduct(name: String!, description: String, price: Float!): Product!
   removeItemFromCart(cartId: ID!, cartItemId: ID!): Cart!
+  deleteItemFromCart(cartId: ID!, cartItemId: ID!): Cart!
   deleteCart(cartId: ID!): DeletedResourceResponse
 }

@@ -16,10 +16,10 @@ exports.resolvers = {
     getCartById: async (_, args) => {
       const cartId = args.cartId;
       const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
-      //check if cart exists
+
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
-      // get data from file
+
       const cartData = await readJsonFile(cartFilePath);
 
       return cartData;
@@ -28,18 +28,17 @@ exports.resolvers = {
       const productId = args.productId;
       const productFilePath = path.join(productDirectory, `${productId}.json`);
       const productExists = await fileExists(productFilePath);
-      // If product does not exist return an error notifying the user of this
+
       if (!productExists)
         return new GraphQLError("That product does not exist");
 
-      // Read the product file; data will be returned as a JSON string
       const productData = await readJsonFile(productFilePath);
       return productData;
     },
   },
   Mutation: {
     addItemToCart: async (_, args) => {
-      const { cartId, productId } = args;
+      const { cartId, productId, quantity } = args;
 
       const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
       const cartExists = await fileExists(cartFilePath);
@@ -48,48 +47,46 @@ exports.resolvers = {
       const cartData = await readJsonFile(cartFilePath);
 
       let itemInCartExist = false;
-      // check if product exists in cart and if so increase quantity:
+
       for (let x of cartData.items) {
         if (x.id === productId) {
-          x.quantity++;
+          x.quantity += quantity;
           itemInCartExist = true;
         }
       }
-      // if product is not in cart already:
+
       if (!itemInCartExist) {
         const productFilePath = path.join(
           productDirectory,
           `${productId}.json`
         );
-        // Check if the requested prododuct actually exists
+
         const productExists = await fileExists(productFilePath);
-        // If product does not exist return an error notifying the user of this
+
         if (!productExists)
           return new GraphQLError("That product does not exist");
 
-        // Read the product file; data will be returned as a JSON string
         const productData = await readJsonFile(productFilePath);
 
         const newCartItem = {
           id: productData.id,
           name: productData.name,
           price: productData.price,
-          quantity: 1,
+          quantity: quantity,
         };
 
-        // push newCartItem in to shoppingcart cartitem-list
         cartData.items.push(newCartItem);
       }
-      //update totalprice for cart:
+
       let sum = 0;
       for (let x of cartData.items) {
         sum += x.quantity * x.price;
       }
 
       cartData.totalprice = sum;
-      //update cart:
+
       await fsPromises.writeFile(cartFilePath, JSON.stringify(cartData));
-      // return updated cart
+
       return cartData;
     },
 
@@ -107,24 +104,22 @@ exports.resolvers = {
         "shoppingcarts",
         `${newCart.id}.json`
       );
-      // kolla om filen existerar
+
       let idExists = true;
       while (idExists) {
         const exists = await fileExists(filePath);
         console.log(exists, newCart.id);
-        // om filen redan existerar generera ett nytt cartId och uppdatera filePath
+
         if (exists) {
           newCart.id = crypto.randomUUID();
           filePath = path.join(cartDirectory, `${newCart.id}.json`);
         }
-        // uppdatera idExists (för att undvika infinite loops)
+
         idExists = exists;
       }
 
-      // Skapa en fil för cart i /data/projects
       await fsPromises.writeFile(filePath, JSON.stringify(newCart));
 
-      // Return:a våran respons; vår nya shoppingcart
       return newCart;
     },
 
@@ -138,7 +133,6 @@ exports.resolvers = {
       const cartData = await readJsonFile(cartFilePath);
 
       let itemInCartExist = false;
-      // check if produkten already exist in cart and if so reduce quantity and if quantity=0 remove from items-list:
 
       for (let i = 0; i < cartData.items.length; i++) {
         if (cartData.items[i].id === cartItemId) {
@@ -151,18 +145,53 @@ exports.resolvers = {
         }
       }
 
-      // if product is not in cart already:
       if (!itemInCartExist) {
         return new GraphQLError("That product does not exist in this cart");
       }
-      //update totalprice for cart:
+
       let sum = 0;
       for (let x of cartData.items) {
         sum += x.quantity * x.price;
       }
 
       cartData.totalprice = sum;
-      //update cart:
+
+      await fsPromises.writeFile(cartFilePath, JSON.stringify(cartData));
+      return cartData;
+    },
+    deleteItemFromCart: async (_, args) => {
+      const { cartId, cartItemId } = args;
+
+      const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
+      const cartExists = await fileExists(cartFilePath);
+      if (!cartExists) return new GraphQLError("That cart does not exist");
+
+      const cartData = await readJsonFile(cartFilePath);
+
+      let itemInCartExist = false;
+
+      for (let i = 0; i < cartData.items.length; i++) {
+        if (cartData.items[i].id === cartItemId) {
+          itemInCartExist = true;
+        }
+      }
+
+      if (!itemInCartExist)
+        return new GraphQLError("That product does not exist in this cart");
+
+      for (let i = 0; i < cartData.items.length; i++) {
+        if (cartData.items[i].id === cartItemId) {
+          cartData.items.splice(i, 1);
+        }
+      }
+
+      let sum = 0;
+      for (let x of cartData.items) {
+        sum += x.quantity * x.price;
+      }
+
+      cartData.totalprice = sum;
+
       await fsPromises.writeFile(cartFilePath, JSON.stringify(cartData));
       return cartData;
     },
@@ -171,7 +200,7 @@ exports.resolvers = {
       const { cartId } = args;
 
       const cartFilePath = path.join(cartDirectory, `${cartId}.json`);
-      // check if file cartexist
+
       const cartExists = await fileExists(cartFilePath);
       if (!cartExists) return new GraphQLError("That cart does not exist");
 
